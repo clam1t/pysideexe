@@ -1,10 +1,8 @@
 import sys
-import random
-import json
 import requests
-from PySide6 import QtCore, QtWidgets, QtGui
-from untitled import Ui_Form
+from PySide6 import QtWidgets, QtCore
 from asd import Ui_MainWindow
+
 
 class App(Ui_MainWindow):
     def __init__(self):
@@ -13,31 +11,26 @@ class App(Ui_MainWindow):
         self.setupUi(self.MainWindow)
         self.base_url = "http://127.0.0.1:5000/user"
         self.task_base_url = "http://127.0.0.1:5000/task"
-
+        self.session = requests.Session()
         self.current_user = None
-        self.selected_task_id = None
 
         self.setup_connections()
         self.setup_ui()
 
-        self.MainWindow.show()
+        self.tabWidget.hide()
 
+        self.MainWindow.show()
         sys.exit(self.app.exec())
 
     def setup_connections(self):
         self.pushButton_3.clicked.connect(self.register)
         self.pushButton_2.clicked.connect(self.login)
-        self.pushButton.clicked.connect(self.mark_task_done)
         self.pushButton_4.clicked.connect(self.sort_tasks)
-        self.pushButton_5.clicked.connect(self.delete_task)
 
     def setup_ui(self):
-        self.tabWidget.hide()
         self.pushButton_3.setText("Регистрация")
         self.pushButton_2.setText("Вход")
-        self.pushButton.setText("Отметить выполненной")
         self.pushButton_4.setText("Сортировать")
-        self.pushButton_5.setText("Удалить задачу")
 
         self.tabWidget.setTabText(0, "Все задачи")
         self.tabWidget.setTabText(1, "Новая задача")
@@ -48,225 +41,172 @@ class App(Ui_MainWindow):
         self.lineEdit.setPlaceholderText("Имя пользователя")
         self.lineEdit_2.setPlaceholderText("Пароль")
 
+
         self.comboBox.addItems(["По умолчанию", "Приоритет", "Дедлайн", "Статус"])
         self.comboBox_2.addItems(["По убыванию", "По возрастанию"])
 
-        self.groupBox.setTitle("Задача")
-        self.groupBox_2.setTitle("Сортировка задач")
+        self.groupBox.setTitle("Сортировка задач")
+        self.groupBox_2.setTitle("Фильтры")
 
-        self.label_3.setText("Название:")
-        self.label_4.setText("ID:")
-        self.label_5.setText("Дедлайн:")
-        self.label_6.setText("Статус:")
-        self.label_7.setText("Уровень сложности:")
+        self.groupBox.hide()
 
-        # Создаем контейнер для задач в scrollArea
-        self.tasks_container = QtWidgets.QVBoxLayout()
-        self.scrollAreaWidgetContents.setLayout(self.tasks_container)
+        for child in self.scrollAreaWidgetContents.children():
+            if child != self.scrollAreaWidgetContents:
+                child.deleteLater()
 
-        # Создаем метки для отображения значений (справа от label)
-        self.task_title_value = QtWidgets.QLabel("")
-        self.task_id_value = QtWidgets.QLabel("")
-        self.task_deadline_value = QtWidgets.QLabel("")
-        self.task_status_value = QtWidgets.QLabel("")
-        self.task_priority_value = QtWidgets.QLabel("")
-
-        # Создаем layout для groupBox с двумя колонками
-        # Левая колонка - метки, правая - значения
-        details_layout = QtWidgets.QGridLayout()
-
-        # Добавляем метки и значения в сетку
-        details_layout.addWidget(self.label_3, 0, 0)  # Название (метка)
-        details_layout.addWidget(self.task_title_value, 0, 1)  # Значение названия
-
-        details_layout.addWidget(self.label_4, 1, 0)  # ID (метка)
-        details_layout.addWidget(self.task_id_value, 1, 1)  # Значение ID
-
-        details_layout.addWidget(self.label_5, 2, 0)  # Дедлайн (метка)
-        details_layout.addWidget(self.task_deadline_value, 2, 1)  # Значение дедлайна
-
-        details_layout.addWidget(self.label_6, 3, 0)  # Статус (метка)
-        details_layout.addWidget(self.task_status_value, 3, 1)  # Значение статуса
-
-        details_layout.addWidget(self.label_7, 4, 0)  # Уровень сложности (метка)
-        details_layout.addWidget(self.task_priority_value, 4, 1)  # Значение приоритета
-
-        # Устанавливаем растяжение для второй колонки
-        details_layout.setColumnStretch(1, 1)
-
-        # Кнопки действий
-        buttons_layout = QtWidgets.QHBoxLayout()
-        buttons_layout.addWidget(self.pushButton)  # Отметить выполненной
-        buttons_layout.addWidget(self.pushButton_5)  # Удалить задачу
-
-        # Основной layout для groupBox
-        main_group_layout = QtWidgets.QVBoxLayout()
-        main_group_layout.addLayout(details_layout)
-        main_group_layout.addLayout(buttons_layout)
-        main_group_layout.addStretch()
-
-        self.groupBox.setLayout(main_group_layout)
-
+        self.scroll_layout = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
+        self.scroll_layout.setSpacing(10)
 
     def register(self):
         username = self.lineEdit_3.text().strip()
         password = self.lineEdit_4.text().strip()
 
+
         data = {'username': username, 'password': password}
 
-
-        response = requests.post(f"{self.base_url}/register_qt", json=data)
-
+        response = self.session.post(f"{self.base_url}/register_qt", json=data)
         if response.status_code == 201:
-            self.after_login(username)
+            self.current_user = response.json().get('user')
+            self.after_login()
 
     def login(self):
         username = self.lineEdit.text().strip()
         password = self.lineEdit_2.text().strip()
 
+
         data = {'username': username, 'password': password}
-
-
-        response = requests.post(f"{self.base_url}/login_qt", json=data)
-
+        response = self.session.post(f"{self.base_url}/login_qt", json=data)
         if response.status_code == 200:
-            self.after_login(username)
+            self.current_user = response.json().get('user')
+            self.after_login()
 
 
-    def after_login(self, username):
+    def after_login(self):
         self.tabWidget.show()
         self.widget_2.hide()
         self.widget.hide()
-        username = self.current_user.get('username')
         self.load_tasks()
 
     def load_tasks(self):
-        response = requests.get(f"{self.task_base_url}/tasks_json")
-
+        response = self.session.get(f"{self.task_base_url}/tasks_json")
         if response.status_code == 200:
             data = response.json()
             if data.get('access'):
                 tasks = data.get('tasks', [])
                 self.display_tasks(tasks)
-                self.status_label.setText(f"Загружено задач: {len(tasks)}")
-                self.clear_task_details()
+
 
     def display_tasks(self, tasks):
-        """Отображение задач в scrollArea"""
-        # Очищаем контейнер
-        for i in reversed(range(self.tasks_container.count())):
-            widget = self.tasks_container.itemAt(i).widget()
-            if widget:
-                widget.deleteLater()
+        for i in reversed(range(self.scroll_layout.count())):
+            item = self.scroll_layout.itemAt(i)
+            if item.widget():
+                item.widget().deleteLater()
 
-        if not tasks:
-            no_tasks_label = QtWidgets.QLabel("Задачи не найдены")
-            no_tasks_label.setAlignment(QtCore.Qt.AlignCenter)
-            self.tasks_container.addWidget(no_tasks_label)
-            return
+
 
         for task in tasks:
-            task_widget = self.create_task_widget(task)
-            self.tasks_container.addWidget(task_widget)
+            task_group = self.create_task_groupbox(task)
+            self.scroll_layout.addWidget(task_group)
 
-        self.tasks_container.addStretch()
+        self.scroll_layout.addStretch()
 
-    def create_task_widget(self, task):
-        """Создание виджета для одной задачи"""
-        task_id = task.get('id', '?')
-        task_title = task.get('title', 'Без названия')
-        is_done = task.get('is_done', False)
-        priority = task.get('priority', 'medium')
-
-        # Создаем текст кнопки
-        status_icon = '✅' if is_done else '⏳'
-
-        task_btn = QtWidgets.QPushButton(f"#{task_id}: {task_title} {status_icon}")
+    def create_task_groupbox(self, task):
+        task_group = QtWidgets.QGroupBox(f"Задача #{task.get('id', '?')}")
 
 
+        layout = QtWidgets.QGridLayout(task_group)
+
+        title_label = QtWidgets.QLabel("<b>" + task.get('title', 'Нет названия') + "</b>")
+        title_label.setStyleSheet("font-size: 12pt;")
+        layout.addWidget(title_label, 0, 0, 1, 2)
+
+        layout.addWidget(QtWidgets.QLabel("ID:"), 1, 0)
+        layout.addWidget(QtWidgets.QLabel(str(task.get('id', 'N/A'))), 1, 1)
 
 
-        # При клике показываем детали
-        task_btn.clicked.connect(lambda checked, t=task: self.show_task_details(t))
-
-        return task_btn
-
-    def show_task_details(self, task):
-        """Показать детали выбранной задачи"""
-        self.selected_task_id = task['id']
-
-        # Заполняем значения в правой панели
-        self.task_title_value.setText(task.get('title', 'Нет названия'))
-        self.task_id_value.setText(str(task.get('id', 'N/A')))
-
-        # Дедлайн
+        layout.addWidget(QtWidgets.QLabel("Дедлайн:"), 2, 0)
         deadline = task.get('deadline', 'Не установлен')
-        self.task_deadline_value.setText(deadline)
+        layout.addWidget(QtWidgets.QLabel(deadline), 2, 1)
 
-        # Статус
+        layout.addWidget(QtWidgets.QLabel("Статус:"), 3, 0)
         is_done = task.get('is_done', False)
-        status_text = "Выполнена ✅" if is_done else "В работе ⏳"
-        self.task_status_value.setText(status_text)
+        status_text = "✅ Выполнена" if is_done else "🔄 В работе"
+        status_label = QtWidgets.QLabel(status_text)
+        status_label.setStyleSheet("color: green;" if is_done else "color: blue;")
+        layout.addWidget(status_label, 3, 1)
 
-        # Приоритет/уровень сложности
+        layout.addWidget(QtWidgets.QLabel("Уровень сложности:"), 4, 0)
         priority = task.get('priority', 'Не указан')
-        priority_text = f"{self.get_priority_icon(priority)} {priority.upper()}"
-        self.task_priority_value.setText(priority_text)
+        priority_label = QtWidgets.QLabel(priority)
 
-        # Настраиваем стили
-        self.update_details_style(is_done, priority, deadline)
+        priority_colors = {
+            "low": "color: green;",
+            "medium": "color: orange;",
+            "high": "color: red;"
+        }
+        if priority.lower() in priority_colors:
+            priority_label.setStyleSheet(priority_colors[priority.lower()])
 
-    def mark_task_done(self):
-        """Отметить выбранную задачу как выполненную"""
-        if not self.selected_task_id:
-            QtWidgets.QMessageBox.warning(self.MainWindow, "Ошибка",
-                                          "Сначала выберите задачу из списка")
-            return
+        layout.addWidget(priority_label, 4, 1)
 
-        try:
-            response = requests.post(f"{self.task_base_url}/task/{self.selected_task_id}/done_json")
+        buttons_layout = QtWidgets.QHBoxLayout()
 
-            if response.status_code == 200:
-                QtWidgets.QMessageBox.information(self.MainWindow, "Успех", "Задача отмечена как выполненная")
-                self.load_tasks()
-            else:
-                error_msg = response.json().get('error', 'Неизвестная ошибка')
-                QtWidgets.QMessageBox.warning(self.MainWindow, "Ошибка", f"Ошибка: {error_msg}")
+        if not is_done:
+            btn_done = QtWidgets.QPushButton("✅ Отметить выполненной")
+            btn_done.setStyleSheet("background-color: #4CAF50; color: white;")
+            task_id = task.get('id')
+            btn_done.clicked.connect(lambda checked, tid=task_id: self.mark_task_done(tid))
+            buttons_layout.addWidget(btn_done)
 
-        except Exception as e:
-            QtWidgets.QMessageBox.critical(self.MainWindow, "Ошибка", f"Ошибка сети: {str(e)}")
+        btn_delete = QtWidgets.QPushButton("🗑️ Удалить задачу")
+        btn_delete.setStyleSheet("background-color: #f44336; color: white;")
+        task_id = task.get('id')
+        btn_delete.clicked.connect(lambda checked, tid=task_id: self.delete_task(tid))
+        buttons_layout.addWidget(btn_delete)
 
-    def delete_task(self):
-        """Удалить выбранную задачу"""
-        if not self.selected_task_id:
-            QtWidgets.QMessageBox.warning(self.MainWindow, "Ошибка",
-                                          "Сначала выберите задачу из списка")
-            return
+        layout.addLayout(buttons_layout, 5, 0, 1, 2)
 
+        task_group.setStyleSheet("""
+            QGroupBox {
+                font-size: 10pt;
+                border: 2px solid #ccc;
+                border-radius: 5px;
+                margin-top: 10px;
+                padding: 10px;
+            }
+            QGroupBox::title {
+                subcontrol-origin: margin;
+                left: 10px;
+                padding: 0 5px 0 5px;
+            }
+        """)
+
+        return task_group
+
+    def mark_task_done(self, task_id):
+
+        response = self.session.post(f"{self.task_base_url}/task/{task_id}/done_json")
+        if response.status_code == 200:
+            self.load_tasks()
+
+    def delete_task(self, task_id):
         reply = QtWidgets.QMessageBox.question(
             self.MainWindow,
             'Подтверждение удаления',
-            f'Вы уверены, что хотите удалить задачу #{self.selected_task_id}?\n'
-            f'"{self.task_title_value.text()}"',
+            f'Вы уверены, что хотите удалить задачу #{task_id}?',
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         )
 
         if reply == QtWidgets.QMessageBox.Yes:
             try:
-                response = requests.post(f"{self.task_base_url}/task/{self.selected_task_id}/delete_json")
-
+                response = self.session.post(f"{self.task_base_url}/task/{task_id}/delete_json")
                 if response.status_code == 200:
-                    QtWidgets.QMessageBox.information(self.MainWindow, "Успех", "Задача удалена")
+                    QtWidgets.QMessageBox.information(self.MainWindow, "Успех", "Задача удалена!")
                     self.load_tasks()
-                else:
-                    error_msg = response.json().get('error', 'Неизвестная ошибка')
-                    QtWidgets.QMessageBox.warning(self.MainWindow, "Ошибка", f"Ошибка: {error_msg}")
-
             except Exception as e:
-                QtWidgets.QMessageBox.critical(self.MainWindow, "Ошибка", f"Ошибка сети: {str(e)}")
+                QtWidgets.QMessageBox.critical(self.MainWindow, "Ошибка", f"Не удалось удалить задачу: {str(e)}")
 
     def sort_tasks(self):
-        """Сортировка задач"""
         sort_by = self.comboBox.currentText()
         order = self.comboBox_2.currentText()
 
@@ -282,48 +222,20 @@ class App(Ui_MainWindow):
             "По возрастанию": "asc"
         }
 
-        if not self.current_user:
-            QtWidgets.QMessageBox.warning(self.MainWindow, "Ошибка", "Сначала войдите в систему")
-            return
+        params = {
+            'sort_by': sort_map.get(sort_by, 'newest'),
+            'order': order_map.get(order, 'desc')
+        }
 
-        try:
-            params = {
-                'sort_by': sort_map.get(sort_by, 'newest'),
-                'order': order_map.get(order, 'desc')
-            }
 
-            response = requests.get(f"{self.task_base_url}/tasks_json", params=params)
+        response = self.session.get(f"{self.task_base_url}/tasks_json", params=params)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('access'):
+                tasks = data.get('tasks', [])
+                self.display_tasks(tasks)
 
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('access'):
-                    tasks = data.get('tasks', [])
-                    self.display_tasks(tasks)
-                    self.status_label.setText(f"Задач: {len(tasks)} ({sort_by}, {order})")
-                else:
-                    QtWidgets.QMessageBox.warning(self.MainWindow, "Ошибка",
-                                                  data.get('error', 'Ошибка доступа'))
-            else:
-                QtWidgets.QMessageBox.warning(self.MainWindow, "Ошибка",
-                                              f"Ошибка сервера: {response.status_code}")
 
-        except Exception as e:
-            QtWidgets.QMessageBox.critical(self.MainWindow, "Ошибка", f"Ошибка: {str(e)}")
-
-    def logout(self):
-        """Выход из системы"""
-        self.current_user = None
-        self.selected_task_id = None
-        self.tabWidget.hide()
-        self.widget_2.show()
-        self.widget.show()
-        self.status_label.setText("Выход выполнен")
-        self.clear_task_details()
-
-        for i in reversed(range(self.tasks_container.count())):
-            widget = self.tasks_container.itemAt(i).widget()
-            if widget:
-                widget.deleteLater()
 
 if __name__ == '__main__':
     App()

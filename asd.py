@@ -15,10 +15,10 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QFont, QFontDatabase, QGradient, QIcon,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
-from PySide6.QtWidgets import (QApplication, QComboBox, QFrame, QGroupBox,
-    QHBoxLayout, QLabel, QLineEdit, QMainWindow,
-    QPushButton, QScrollArea, QSizePolicy, QSpacerItem,
-    QStatusBar, QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QApplication, QComboBox, QGroupBox, QHBoxLayout,
+    QLabel, QLineEdit, QMainWindow, QPushButton,
+    QScrollArea, QSizePolicy, QSpacerItem, QStatusBar,
+    QTabWidget, QVBoxLayout, QWidget)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -107,21 +107,14 @@ class Ui_MainWindow(object):
         self.tabWidget.setObjectName(u"tabWidget")
         self.tab = QWidget()
         self.tab.setObjectName(u"tab")
-        self.frame = QFrame(self.tab)
-        self.frame.setObjectName(u"frame")
-        self.frame.setGeometry(QRect(9, 536, 486, 16))
-        self.frame.setStyleSheet(u"border-color: rgb(0, 0, 0);")
-        self.frame.setFrameShape(QFrame.Shape.StyledPanel)
-        self.frame.setFrameShadow(QFrame.Shadow.Raised)
-        self.frame.setLineWidth(20)
-        self.frame.setMidLineWidth(20)
+        self.verticalLayout_6 = QVBoxLayout(self.tab)
+        self.verticalLayout_6.setObjectName(u"verticalLayout_6")
         self.scrollArea = QScrollArea(self.tab)
         self.scrollArea.setObjectName(u"scrollArea")
-        self.scrollArea.setGeometry(QRect(9, 9, 491, 281))
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 489, 279))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 484, 292))
         self.groupBox = QGroupBox(self.scrollAreaWidgetContents)
         self.groupBox.setObjectName(u"groupBox")
         self.groupBox.setGeometry(QRect(0, 10, 481, 251))
@@ -147,9 +140,11 @@ class Ui_MainWindow(object):
         self.pushButton_5.setObjectName(u"pushButton_5")
         self.pushButton_5.setGeometry(QRect(120, 200, 75, 24))
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
+
+        self.verticalLayout_6.addWidget(self.scrollArea)
+
         self.groupBox_2 = QGroupBox(self.tab)
         self.groupBox_2.setObjectName(u"groupBox_2")
-        self.groupBox_2.setGeometry(QRect(10, 290, 491, 311))
         self.verticalLayout_5 = QVBoxLayout(self.groupBox_2)
         self.verticalLayout_5.setObjectName(u"verticalLayout_5")
         self.verticalSpacer_5 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
@@ -174,6 +169,9 @@ class Ui_MainWindow(object):
         self.verticalSpacer_6 = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.verticalLayout_5.addItem(self.verticalSpacer_6)
+
+
+        self.verticalLayout_6.addWidget(self.groupBox_2)
 
         self.tabWidget.addTab(self.tab, "")
         self.tab_3 = QWidget()
