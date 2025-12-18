@@ -26,11 +26,19 @@ class App(Ui_MainWindow):
         self.pushButton_3.clicked.connect(self.register)
         self.pushButton_2.clicked.connect(self.login)
         self.pushButton_4.clicked.connect(self.sort_tasks)
+        self.pushButton_6.clicked.connect(self.create_task)
+        self.pushButton_7.clicked.connect(self.find_task)
+        self.pushButton_10.clicked.connect(self.reload_tasks)
 
     def setup_ui(self):
         self.pushButton_3.setText("Регистрация")
         self.pushButton_2.setText("Вход")
         self.pushButton_4.setText("Сортировать")
+        self.pushButton_6.setText("Создать")
+        self.pushButton_7.setText("Искать")
+        self.pushButton_9.setText("✅ Отметить выполненной")
+        self.pushButton_8.setText("🗑️ Удалить задачу")
+        self.pushButton_10.setText("Обновить")
 
         self.tabWidget.setTabText(0, "Все задачи")
         self.tabWidget.setTabText(1, "Новая задача")
@@ -40,13 +48,29 @@ class App(Ui_MainWindow):
         self.lineEdit_4.setPlaceholderText("Пароль")
         self.lineEdit.setPlaceholderText("Имя пользователя")
         self.lineEdit_2.setPlaceholderText("Пароль")
+        self.lineEdit_5.setPlaceholderText("Название задачи")
+        self.lineEdit_5.setPlaceholderText("ID задачи")
 
 
         self.comboBox.addItems(["По умолчанию", "Приоритет", "Дедлайн", "Статус"])
         self.comboBox_2.addItems(["По убыванию", "По возрастанию"])
+        self.comboBox_3.addItems(["low", "medium", "high"])
 
         self.groupBox.setTitle("Сортировка задач")
         self.groupBox_2.setTitle("Фильтры")
+        self.groupBox_3.setTitle("Новая задача")
+        self.groupBox_3.setTitle("Поиск задачи")
+        self.groupBox_4.setTitle("Задач")
+
+        self.label_14.setText("Название")
+        self.label_10.setText("ID:")
+        self.label_11.setText("Дедлайн")
+        self.label_12.setText("Статус")
+        self.label_13.setText("Приоритет")
+
+
+
+        self.dateEdit.setDisplayFormat("yyyy-MM-dd")
 
         self.groupBox.hide()
 
@@ -234,6 +258,58 @@ class App(Ui_MainWindow):
             if data.get('access'):
                 tasks = data.get('tasks', [])
                 self.display_tasks(tasks)
+
+
+
+    def create_task(self):
+        title = self.lineEdit_5.text().strip()
+        priority = self.comboBox_3.currentText()
+        deadline = self.dateEdit.text()
+
+        data = {'title': title, 'priority': priority, 'deadline': deadline}
+
+        response = self.session.post(f"{self.task_base_url}/create_task_json", json=data)
+
+        if response.status_code == 200:
+            QtWidgets.QMessageBox.information(self.MainWindow, "Успех", "Задача добавлена!")
+            self.load_tasks()
+
+    def find_task(self):
+        task_id = self.lineEdit_6.text().strip()
+
+        data = {'task_id': task_id}
+        response = self.session.post(f"{self.task_base_url}/task_by_id_json", json=data)
+
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('access'):
+                task = data.get('task', {})
+
+
+                task_id = task.get('id')
+                title = task.get('title', 'Нет названия')
+                deadline = task.get('deadline', 'Не установлен')
+                is_done = task.get('is_done', False)
+                priority = task.get('priority', 'Не указан')
+
+
+                self.label_14.setText(title)
+                self.label_10.setText(str(task_id))
+                self.label_11.setText(str(deadline))
+                self.label_12.setText("✅ Выполнена" if is_done else "🔄 В работе")
+                self.label_13.setText(priority)
+
+
+
+                self.pushButton_9.clicked.connect(lambda checked, tid=task_id: self.mark_task_done(tid))
+                self.pushButton_8.clicked.connect(lambda checked, tid=task_id: self.delete_task(tid))
+
+    def reload_tasks(self):
+        self.load_tasks()
+
+
+
+
 
 
 
